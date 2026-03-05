@@ -117,32 +117,32 @@ const GoalPlanner = () => {
   }));
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6 md:ml-20 min-h-screen">
+    <div className="p-3 md:p-6 pb-28 md:pb-6 md:ml-20 min-h-screen">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
+        className="mb-4 md:mb-6"
       >
-        <h1 className="text-3xl font-bold text-white mb-2">Goal Planner</h1>
-        <div className="flex gap-4 text-sm">
-          <span className="text-dark-400">
+        <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2">Goal Planner</h1>
+        <div className="flex gap-3 md:gap-4 text-xs md:text-sm">
+          <span className="text-slate-400">
             {stats.completed} completed
           </span>
-          <span className="text-dark-400">
+          <span className="text-slate-400">
             {stats.inProgress} in progress
           </span>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
         {[
           { label: 'Total Goals', value: stats.total, color: '#10b981' },
           { label: 'Completed', value: stats.completed, color: '#3b82f6' },
           { label: 'Avg Progress', value: `${stats.avgProgress}%`, color: '#f59e0b' },
         ].map((stat, index) => (
-          <GlassCard key={stat.label} delay={index * 0.1} className="p-4 text-center">
-            <p className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
-            <p className="text-sm text-dark-400">{stat.label}</p>
+          <GlassCard key={stat.label} delay={index * 0.1} className="p-3 md:p-4 text-center">
+            <p className="text-lg md:text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
+            <p className="text-xs md:text-sm text-slate-400">{stat.label}</p>
           </GlassCard>
         ))}
       </div>

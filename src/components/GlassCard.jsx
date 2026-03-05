@@ -13,12 +13,15 @@ const GlassCard = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
       whileHover={hover ? { 
-        scale: 1.02,
-        boxShadow: '0 8px 32px rgba(16, 185, 129, 0.2)'
+        scale: 1.01,
+        boxShadow: '0 8px 32px rgba(16, 185, 129, 0.15)'
       } : undefined}
       onClick={onClick}
       className={`
-        glass-card p-6 
+        bg-slate-800/80 backdrop-blur-xl 
+        border border-slate-700/50 
+        rounded-xl md:rounded-2xl 
+        p-4 md:p-6 
         ${hover ? 'cursor-pointer' : ''} 
         ${className}
       `}

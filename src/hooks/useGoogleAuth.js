@@ -17,22 +17,45 @@ export const useGoogleAuth = () => {
   const [lastSync, setLastSync] = useState(null);
   const [error, setError] = useState(null);
 
+  const checkStoredAuth = useCallback(async () => {
+    const storedUser = localStorage.getItem('habitos_google_user');
+    const storedLastSync = localStorage.getItem('habitos_last_sync');
+    const token = localStorage.getItem('habitos_google_token');
+    
+    if (token && isSignedIn()) {
+      setIsConnected(true);
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch {}
+      }
+      if (storedLastSync) {
+        setLastSync(JSON.parse(storedLastSync));
+      }
+      return true;
+    }
+    return false;
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       try {
         await initGoogleApi();
-        
-        // Give it a moment to initialize
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Check if already signed in (access token might be in memory)
-        if (isSignedIn()) {
-          const userInfo = await getUserInfo();
-          if (userInfo) {
-            setUser(userInfo);
-            setIsConnected(true);
-            const stored = localStorage.getItem('habitos_last_sync');
-            if (stored) setLastSync(JSON.parse(stored));
+        // Check for stored auth
+        const hasStoredAuth = await checkStoredAuth();
+        
+        if (!hasStoredAuth) {
+          const wasConnected = isSignedIn();
+          if (wasConnected) {
+            const userInfo = await getUserInfo();
+            if (userInfo) {
+              setUser(userInfo);
+              setIsConnected(true);
+              const stored = localStorage.getItem('habitos_last_sync');
+              if (stored) setLastSync(JSON.parse(stored));
+            }
           }
         }
       } catch (err) {
@@ -45,7 +68,7 @@ export const useGoogleAuth = () => {
     
     const timer = setTimeout(init, 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [checkStoredAuth]);
 
   const signIn = useCallback(async (autoSync = true) => {
     setIsLoading(true);
@@ -53,7 +76,6 @@ export const useGoogleAuth = () => {
     try {
       await signInWithGoogle();
       
-      // Get user info after successful sign in
       const userInfo = await getUserInfo();
       if (userInfo) {
         setUser(userInfo);
@@ -63,7 +85,6 @@ export const useGoogleAuth = () => {
         setIsConnected(true);
       }
 
-      // Auto-sync from cloud after successful login
       if (autoSync) {
         try {
           const cloudData = await loadFromGoogleDrive();
@@ -72,7 +93,6 @@ export const useGoogleAuth = () => {
             const now = new Date().toISOString();
             setLastSync(now);
             localStorage.setItem('habitos_last_sync', JSON.stringify(now));
-            // Trigger a custom event to notify other hooks to refresh
             window.dispatchEvent(new CustomEvent('habitos-data-updated'));
           }
         } catch (syncErr) {
@@ -93,7 +113,6 @@ export const useGoogleAuth = () => {
     setUser(null);
     setIsConnected(false);
     setLastSync(null);
-    localStorage.removeItem('habitos_last_sync');
   }, []);
 
   const syncToCloud = useCallback(async () => {
@@ -132,7 +151,6 @@ export const useGoogleAuth = () => {
         const now = new Date().toISOString();
         setLastSync(now);
         localStorage.setItem('habitos_last_sync', JSON.stringify(now));
-        // Trigger a custom event to notify other hooks to refresh
         window.dispatchEvent(new CustomEvent('habitos-data-updated'));
       }
       return cloudData;

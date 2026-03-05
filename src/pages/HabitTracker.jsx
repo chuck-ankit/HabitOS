@@ -5,10 +5,10 @@ import {
   Flame, 
   TrendingUp, 
   Check, 
-  X, 
   Pencil, 
   Trash2,
-  BarChart2
+  BarChart2,
+  Sparkles
 } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
 import ProgressBar from '../components/ProgressBar';
@@ -20,8 +20,28 @@ import confetti from 'canvas-confetti';
 
 const COLORS = [
   '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', 
-  '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
+  '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16',
+  '#a855f7', '#f43f5e', '#22c55e', '#0ea5e9', '#eab308'
 ];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { 
+    opacity: 1, 
+    x: 0,
+    transition: { type: 'spring', stiffness: 300, damping: 25 }
+  }
+};
 
 const HabitTracker = () => {
   const { 
@@ -36,11 +56,19 @@ const HabitTracker = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingHabit, setEditingHabit] = useState(null);
   const [showHeatmap, setShowHeatmap] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', color: COLORS[0] });
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    description: '', 
+    color: COLORS[Math.floor(Math.random() * COLORS.length)] 
+  });
 
   const handleAddHabit = () => {
     setEditingHabit(null);
-    setFormData({ name: '', description: '', color: COLORS[Math.floor(Math.random() * COLORS.length)] });
+    setFormData({ 
+      name: '', 
+      description: '', 
+      color: COLORS[Math.floor(Math.random() * COLORS.length)] 
+    });
     setShowModal(true);
   };
 
@@ -115,98 +143,133 @@ const HabitTracker = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6 md:ml-20 min-h-screen">
+    <div className="p-3 md:p-6 pb-28 md:pb-6 md:ml-20 min-h-screen">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
+        className="mb-4 md:mb-6"
       >
-        <h1 className="text-3xl font-bold text-white mb-2">Habit Tracker</h1>
-        <p className="text-dark-400">{habits.length}/30 habits</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 flex items-center gap-2">
+          <Sparkles className="text-emerald-400" size={24} />
+          Habit Tracker
+        </h1>
+        <p className="text-sm md:text-base text-slate-400">{habits.length}/30 habits</p>
       </motion.div>
 
-      <div className="space-y-4">
-        {habits.map((habit, index) => {
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-3 md:space-y-4"
+      >
+        {habits.map((habit) => {
           const stats = getHabitStats(habit.id);
           const isCompletedToday = habit.completedDates[getToday()];
           
           return (
-            <motion.div
-              key={habit.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <GlassCard hover className="p-4">
-                <div className="flex items-start gap-4">
-                  <button
+            <motion.div key={habit.id} variants={itemVariants}>
+              <GlassCard hover className="p-3 md:p-4">
+                <div className="flex items-start gap-2 md:gap-4">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => handleToggle(habit.id)}
                     className={`
-                      w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200
+                      w-10 h-10 md:w-12 md:h-12 rounded-xl flex-shrink-0 flex items-center justify-center transition-all duration-200
                       ${isCompletedToday 
-                        ? 'bg-primary-500 text-white' 
-                        : 'bg-dark-700 text-dark-400 hover:bg-primary-500/20'
+                        ? 'text-white' 
+                        : 'text-slate-400 hover:bg-emerald-500/20'
                       }
                     `}
+                    style={{ 
+                      backgroundColor: isCompletedToday ? habit.color : undefined,
+                      boxShadow: isCompletedToday ? `0 4px 15px ${habit.color}60` : undefined
+                    }}
                   >
-                    {isCompletedToday ? <Check size={24} /> : <div className="w-3 h-3 rounded-full border-2 border-current" />}
-                  </button>
+                    {isCompletedToday ? (
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: 'spring', stiffness: 500 }}
+                      >
+                        <Check size={18} md:size={24} />
+                      </motion.div>
+                    ) : (
+                      <div className="w-3 h-3 md:w-3.5 md:h-3.5 rounded-full" style={{ borderColor: habit.color, borderWidth: 2 }} />
+                    )}
+                  </motion.button>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-white truncate">{habit.name}</h3>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h3 className="font-semibold text-white text-sm md:text-base truncate max-w-[160px] md:max-w-[200px]">
+                        {habit.name}
+                      </h3>
                       {habit.streak > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                          <Flame size={12} />
+                        <motion.span 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="flex items-center gap-1 text-xs text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full"
+                        >
+                          <Flame size={10} />
                           {habit.streak}
-                        </span>
+                        </motion.span>
                       )}
+                      <motion.span 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: habit.color }}
+                      />
                     </div>
                     
                     {habit.description && (
-                      <p className="text-sm text-dark-400 mb-2 line-clamp-1">{habit.description}</p>
+                      <p className="text-xs md:text-sm text-slate-400 mb-2 line-clamp-1">{habit.description}</p>
                     )}
                     
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="text-dark-400">
-                        <TrendingUp size={14} className="inline mr-1" />
-                        {stats?.winRate || 0}% win rate
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs md:text-sm text-slate-400">
+                      <span>
+                        <TrendingUp size={12} className="inline mr-1" />
+                        {stats?.winRate || 0}%
                       </span>
-                      <span className="text-dark-400">
-                        Best: {habit.longestStreak}
-                      </span>
+                      <span>Best: {habit.longestStreak}</span>
                     </div>
                     
-                    <div className="mt-3">
+                    <div className="mt-2 md:mt-3">
                       <ProgressBar 
                         value={stats?.winRate || 0} 
                         color={habit.color}
-                        height="h-1.5"
+                        height="h-2"
                       />
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-1">
-                    <button
+                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                       onClick={() => setShowHeatmap(showHeatmap === habit.id ? null : habit.id)}
-                      className="p-2 text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
+                      className="p-1.5 md:p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                     >
-                      <BarChart2 size={18} />
-                    </button>
-                    <button
+                      <BarChart2 size={14} md:size={18} />
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                       onClick={() => handleEditHabit(habit)}
-                      className="p-2 text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
+                      className="p-1.5 md:p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                     >
-                      <Pencil size={18} />
-                    </button>
-                    <button
+                      <Pencil size={14} md:size={18} />
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                       onClick={() => {
                         if (confirm('Delete this habit?')) deleteHabit(habit.id);
                       }}
-                      className="p-2 text-dark-400 hover:text-red-400 hover:bg-dark-700 rounded-lg transition-colors"
+                      className="p-1.5 md:p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors"
                     >
-                      <Trash2 size={18} />
-                    </button>
+                      <Trash2 size={14} md:size={18} />
+                    </motion.button>
                   </div>
                 </div>
                 
@@ -216,17 +279,20 @@ const HabitTracker = () => {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      className="mt-4 pt-4 border-t border-dark-700"
+                      className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-slate-700"
                     >
                       <div className="flex flex-wrap gap-1 justify-center">
-                        {getHeatmapData(habit).slice(-90).map((day, i) => (
-                          <div
+                        {getHeatmapData(habit).slice(-60).map((day) => (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            whileHover={{ scale: 1.3 }}
                             key={day.date}
-                            className="heatmap-cell"
-                            title={`${formatDate(day.date)}: ${day.completed ? 'Completed' : 'Not completed'}`}
+                            className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-sm cursor-pointer"
+                            title={`${formatDate(day.date)}: ${day.completed ? 'Done' : 'Missed'}`}
                             style={{ 
                               backgroundColor: day.completed ? habit.color : '#1f2937',
-                              opacity: day.completed ? 1 : 0.3
+                              opacity: day.completed ? 1 : 0.4
                             }}
                           />
                         ))}
@@ -238,19 +304,26 @@ const HabitTracker = () => {
             </motion.div>
           );
         })}
-      </div>
+      </motion.div>
 
       {habits.length === 0 && (
-        <GlassCard className="text-center py-12">
-          <Flame size={48} className="mx-auto text-dark-500 mb-4" />
+        <GlassCard className="text-center py-10 md:py-14">
+          <motion.div
+            animate={{ y: [0, -10, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Flame size={40} md:size={56} className="mx-auto text-slate-600 mb-4" />
+          </motion.div>
           <h3 className="text-lg font-semibold text-white mb-2">No habits yet</h3>
-          <p className="text-dark-400 mb-4">Start building better habits today!</p>
-          <button
+          <p className="text-slate-400 mb-5 text-sm md:text-base">Start building better habits today!</p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={handleAddHabit}
-            className="px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors"
+            className="px-6 py-2.5 md:py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25 text-sm md:text-base"
           >
             Add Your First Habit
-          </button>
+          </motion.button>
         </GlassCard>
       )}
 
@@ -268,38 +341,40 @@ const HabitTracker = () => {
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editingHabit ? 'Edit Habit' : 'New Habit'}>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-dark-400 mb-1">Name</label>
+            <label className="block text-sm text-slate-400 mb-1.5">Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Enter habit name"
-              className="w-full px-4 py-2 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-dark-500 focus:outline-none focus:border-primary-500"
+              className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm md:text-base transition-all"
               autoFocus
             />
           </div>
           
           <div>
-            <label className="block text-sm text-dark-400 mb-1">Description (optional)</label>
+            <label className="block text-sm text-slate-400 mb-1.5">Description (optional)</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Add a description"
-              rows={3}
-              className="w-full px-4 py-2 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-dark-500 focus:outline-none focus:border-primary-500 resize-none"
+              rows={2}
+              className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 resize-none text-sm md:text-base transition-all"
             />
           </div>
           
           <div>
-            <label className="block text-sm text-dark-400 mb-2">Color</label>
+            <label className="block text-sm text-slate-400 mb-2">Color</label>
             <div className="flex flex-wrap gap-2">
               {COLORS.map((color) => (
-                <button
+                <motion.button
                   key={color}
+                  whileHover={{ scale: 1.15 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => setFormData({ ...formData, color })}
                   className={`
-                    w-8 h-8 rounded-lg transition-transform
-                    ${formData.color === color ? 'scale-110 ring-2 ring-white ring-offset-2 ring-offset-dark-800' : ''}
+                    w-8 h-8 md:w-9 md:h-9 rounded-lg transition-all
+                    ${formData.color === color ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-800 scale-110' : ''}
                   `}
                   style={{ backgroundColor: color }}
                 />
@@ -307,12 +382,14 @@ const HabitTracker = () => {
             </div>
           </div>
           
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleSave}
-            className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition-colors"
+            className="w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-emerald-500/25 text-sm md:text-base"
           >
             {editingHabit ? 'Save Changes' : 'Create Habit'}
-          </button>
+          </motion.button>
         </div>
       </Modal>
     </div>

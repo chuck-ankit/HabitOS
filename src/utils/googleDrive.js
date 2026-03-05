@@ -2,7 +2,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_C
 const DRIVE_FILE_NAME = 'habitos-backup.json';
 
 let tokenClient = null;
-let accessToken = null;
+let accessToken = localStorage.getItem('habitos_google_token') || null;
 let gapiInitialized = false;
 let gisInitialized = false;
 
@@ -31,7 +31,6 @@ export const initGoogleApi = () => {
       });
     };
     script1.onerror = () => {
-      console.error('Failed to load Google API script');
       gapiInitialized = true;
       checkReady();
     };
@@ -46,6 +45,7 @@ export const initGoogleApi = () => {
         callback: (response) => {
           if (response.access_token) {
             accessToken = response.access_token;
+            localStorage.setItem('habitos_google_token', accessToken);
           }
         },
       });
@@ -53,7 +53,6 @@ export const initGoogleApi = () => {
       checkReady();
     };
     script2.onerror = () => {
-      console.error('Failed to load Google Identity Services');
       gisInitialized = true;
       checkReady();
     };
@@ -77,6 +76,7 @@ export const signInWithGoogle = () => {
     tokenClient.callback = async (response) => {
       if (response.access_token) {
         accessToken = response.access_token;
+        localStorage.setItem('habitos_google_token', accessToken);
         resolve({ access_token: response.access_token });
       } else if (response.error) {
         reject(new Error(response.error_description || 'Failed to sign in with Google'));
@@ -100,8 +100,11 @@ export const signOutGoogle = () => {
     } catch (e) {
       console.warn('Could not revoke token:', e);
     }
-    accessToken = null;
   }
+  accessToken = null;
+  localStorage.removeItem('habitos_google_token');
+  localStorage.removeItem('habitos_google_user');
+  localStorage.removeItem('habitos_last_sync');
 };
 
 export const isSignedIn = () => {
@@ -116,7 +119,6 @@ export const saveToGoogleDrive = async (data) => {
   const jsonContent = JSON.stringify(data, null, 2);
 
   try {
-    // First, try to find existing file
     let existingFileId = null;
     
     try {
@@ -133,7 +135,6 @@ export const saveToGoogleDrive = async (data) => {
     }
 
     if (existingFileId) {
-      // Update existing file
       const response = await fetch(
         `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=media`,
         {
@@ -153,7 +154,6 @@ export const saveToGoogleDrive = async (data) => {
       
       return existingFileId;
     } else {
-      // Create new file
       const metadataObj = {
         name: DRIVE_FILE_NAME,
         mimeType: 'application/json',
@@ -182,6 +182,13 @@ export const saveToGoogleDrive = async (data) => {
     }
   } catch (error) {
     console.error('Error saving to Google Drive:', error);
+    
+    if (error.message && (error.message.includes('401') || error.message.includes('Token expired'))) {
+      accessToken = null;
+      localStorage.removeItem('habitos_google_token');
+      throw new Error('Session expired. Please sign in again.');
+    }
+    
     throw new Error(getReadableError(error));
   }
 };
@@ -192,7 +199,6 @@ export const loadFromGoogleDrive = async () => {
   }
 
   try {
-    // Search for file
     const searchResponse = await window.gapi.client.drive.files.list({
       q: `name = '${DRIVE_FILE_NAME}' and trashed = false`,
       fields: 'files(id, name)',
@@ -204,7 +210,6 @@ export const loadFromGoogleDrive = async () => {
 
     const fileId = searchResponse.result.files[0].id;
 
-    // Download file content
     const response = await fetch(
       `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
       {
@@ -216,6 +221,11 @@ export const loadFromGoogleDrive = async () => {
       if (response.status === 404) {
         return null;
       }
+      if (response.status === 401) {
+        accessToken = null;
+        localStorage.removeItem('habitos_google_token');
+        throw new Error('Session expired. Please sign in again.');
+      }
       throw new Error(`Failed to load file: ${response.status}`);
     }
 
@@ -223,12 +233,26 @@ export const loadFromGoogleDrive = async () => {
     return data;
   } catch (error) {
     console.error('Error loading from Google Drive:', error);
+    
+    if (error.message && error.message.includes('401')) {
+      accessToken = null;
+      localStorage.removeItem('habitos_google_token');
+    }
+    
     throw new Error(getReadableError(error));
   }
 };
 
 export const getUserInfo = async () => {
-  if (!accessToken) return null;
+  if (!accessToken) {
+    const stored = localStorage.getItem('habitos_google_user');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {}
+    }
+    return null;
+  }
   
   try {
     const response = await fetch(
@@ -242,7 +266,9 @@ export const getUserInfo = async () => {
       return null;
     }
     
-    return await response.json();
+    const userInfo = await response.json();
+    localStorage.setItem('habitos_google_user', JSON.stringify(userInfo));
+    return userInfo;
   } catch (error) {
     console.error('Error getting user info:', error);
     return null;

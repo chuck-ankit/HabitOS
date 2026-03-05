@@ -130,7 +130,7 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6 md:ml-20 min-h-screen">
+    <div className="p-3 md:p-6 pb-24 md:pb-6 md:ml-20 min-h-screen">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
